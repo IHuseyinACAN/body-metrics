@@ -33,6 +33,59 @@
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-color: #020617;
+        /* Slate 950 */
+        --card-bg: #0f172a;
+        /* Slate 900 */
+        --glass-bg: rgba(30, 41, 59, 0.7);
+        /* Slate 800 with opacity */
+        --glass-border: rgba(51, 65, 85, 0.5);
+        /* Slate 700 with opacity */
+
+        --primary: #2dd4bf;
+        /* Teal 400 - Brighter for dark mode */
+        --primary-glow: rgba(45, 212, 191, 0.15);
+
+        --secondary: #818cf8;
+        /* Indigo 400 */
+        --secondary-glow: rgba(129, 140, 248, 0.15);
+
+        --accent: #f472b6;
+        /* Pink 400 */
+
+        --text-main: #f1f5f9;
+        /* Slate 100 */
+        --text-muted: #94a3b8;
+        /* Slate 400 */
+
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    }
+
+    .bottom-nav {
+        background: rgba(15, 23, 42, 0.9) !important;
+        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    }
+
+    .input-group input {
+        background: #1e293b !important;
+    }
+
+    .input-group input:focus {
+        background: #0f172a !important;
+    }
+
+    .modal-content {
+        background: #0f172a !important;
+    }
+
+    .glass-select {
+        background: rgba(30, 41, 59, 0.5) !important;
+    }
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -76,6 +129,7 @@ body {
     font-weight: 700;
     background: linear-gradient(135deg, #fff 0%, var(--text-muted) 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 

@@ -67,12 +67,21 @@ function init() {
     // Navigation
     els.navItems.forEach(item => {
         item.addEventListener('click', () => {
-            // UI Toggle
+            const targetId = item.dataset.target;
+            const isAlreadyActive = item.classList.contains('active');
+
+            // If clicking already active non-dashboard item, return to dashboard
+            if (isAlreadyActive && targetId !== 'dashboard') {
+                const dashboardNavItem = Array.from(els.navItems).find(n => n.dataset.target === 'dashboard');
+                dashboardNavItem.click();
+                return;
+            }
+
+            // Normal Switch
             els.navItems.forEach(n => n.classList.remove('active'));
             item.classList.add('active');
 
             // View Switch
-            const targetId = item.dataset.target;
             els.views.forEach(v => {
                 if (v.id === targetId) v.classList.remove('hidden', 'active');
                 else v.classList.add('hidden');
@@ -199,13 +208,17 @@ function renderHistory() {
 }
 
 // Chart
+const getThemeColors = () => {
+    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return {
+        grid: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+        text: isDark ? '#94a3b8' : '#64748b'
+    };
+};
+
 function initChart() {
     const ctx = els.chartCanvas.getContext('2d');
-
-    // Gradient
-    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, 'rgba(13, 148, 136, 0.5)'); // primary (teal 600)
-    gradient.addColorStop(1, 'rgba(13, 148, 136, 0.0)');
+    const colors = getThemeColors();
 
     chartInstance = new Chart(ctx, {
         type: 'line',
@@ -214,11 +227,10 @@ function initChart() {
             datasets: [{
                 label: 'Metric',
                 data: [],
-                borderColor: '#0d9488', // teal 600
-                backgroundColor: gradient,
+                borderColor: '#0d9488',
+                backgroundColor: 'transparent',
                 borderWidth: 3,
                 pointBackgroundColor: '#ffffff',
-                pointBorderColor: '#0d9488',
                 pointBorderWidth: 2,
                 pointRadius: 4,
                 fill: true,
@@ -241,14 +253,23 @@ function initChart() {
             scales: {
                 x: {
                     grid: { display: false, drawBorder: false },
-                    ticks: { color: '#64748b' }
+                    ticks: { color: colors.text }
                 },
                 y: {
-                    grid: { color: 'rgba(0,0,0,0.05)', borderDash: [5, 5] },
-                    ticks: { color: '#64748b' }
+                    grid: { color: colors.grid, borderDash: [5, 5] },
+                    ticks: { color: colors.text }
                 }
             }
         }
+    });
+
+    // Listen for theme changes to update chart
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+        const newColors = getThemeColors();
+        chartInstance.options.scales.x.ticks.color = newColors.text;
+        chartInstance.options.scales.y.grid.color = newColors.grid;
+        chartInstance.options.scales.y.ticks.color = newColors.text;
+        chartInstance.update();
     });
 
     updateChart();

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BodyMetrics</title>
+    <meta name="description" content="Track your body composition stats like weight, fat, muscle, and more.">
+    <meta name="theme-color" content="#f8fafc">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div>
+                    <h1 class="app-title">BodyMetrics</h1>
+                    <p class="date-display" id="currentDate">Today</p>
+                </div>
+                <button id="addEntryBtn" class="icon-btn" aria-label="Add Entry">
+                    <i data-lucide="plus"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content (Dashboard) -->
+        <main id="dashboard" class="view active">
+
+            <!-- Summary Cards -->
+            <div class="metrics-grid">
+                <div class="metric-card weight">
+                    <div class="card-icon"><i data-lucide="scale"></i></div>
+                    <div class="card-data">
+                        <span class="label">Ağırlık</span>
+                        <div class="value-group">
+                            <span class="value" id="disp-weight">--</span>
+                            <span class="unit">kg</span>
+                        </div>
+                        <span class="change neutral" id="diff-weight">-</span>
+                    </div>
+                </div>
+
+                <div class="metric-card fat">
+                    <div class="card-icon"><i data-lucide="droplets"></i></div>
+                    <div class="card-data">
+                        <span class="label">Yağ Oranı</span>
+                        <div class="value-group">
+                            <span class="value" id="disp-fat">--</span>
+                            <span class="unit">%</span>
+                        </div>
+                        <span class="change neutral" id="diff-fat">-</span>
+                    </div>
+                </div>
+
+                <div class="metric-card muscle">
+                    <div class="card-icon"><i data-lucide="biceps-flexed"></i></div>
+                    <div class="card-data">
+                        <span class="label">Kas</span>
+                        <div class="value-group">
+                            <span class="value" id="disp-muscle">--</span>
+                            <span class="unit">kg</span>
+                        </div>
+                        <span class="change neutral" id="diff-muscle">-</span>
+                    </div>
+                </div>
+
+                <div class="metric-card water">
+                    <div class="card-icon"><i data-lucide="waves"></i></div>
+                    <div class="card-data">
+                        <span class="label">Su</span>
+                        <div class="value-group">
+                            <span class="value" id="disp-water">--</span>
+                            <span class="unit">%</span>
+                        </div>
+                        <span class="change neutral" id="diff-water">-</span>
+                    </div>
+                </div>
+
+                <!-- New Metrics -->
+                <div class="metric-card bone">
+                    <div class="card-icon"><i data-lucide="bone"></i></div>
+                    <div class="card-data">
+                        <span class="label">Kemik</span>
+                        <div class="value-group">
+                            <span class="value" id="disp-bone">--</span>
+                            <span class="unit">kg</span>
+                        </div>
+                        <span class="change neutral" id="diff-bone">-</span>
+                    </div>
+                </div>
+
+                <div class="metric-card bmr">
+                    <div class="card-icon"><i data-lucide="flame"></i></div>
+                    <div class="card-data">
+                        <span class="label">BMR</span>
+                        <div class="value-group">
+                            <span class="value" id="disp-bmr">--</span>
+                            <span class="unit">kcal</span>
+                        </div>
+                        <span class="change neutral" id="diff-bmr">-</span>
+                    </div>
+                </div>
+
+                <div class="metric-card age">
+                    <div class="card-icon"><i data-lucide="hourglass"></i></div>
+                    <div class="card-data">
+                        <span class="label">Met. Yaşı</span>
+                        <div class="value-group">
+                            <span class="value" id="disp-age">--</span>
+                            <span class="unit">yıl</span>
+                        </div>
+                        <span class="change neutral" id="diff-age">-</span>
+                    </div>
+                </div>
+
+                <div class="metric-card visceral">
+                    <div class="card-icon"><i data-lucide="activity"></i></div>
+                    <div class="card-data">
+                        <span class="label">İç. Yağ</span>
+                        <div class="value-group">
+                            <span class="value" id="disp-visceral">--</span>
+                            <span class="unit">lvl</span>
+                        </div>
+                        <span class="change neutral" id="diff-visceral">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Stats List (Scrollable) -->
+            <div class="details-list glass-panel">
+                <h3>Detaylı Veriler</h3>
+                <div id="latest-details" class="details-grid">
+                    <!-- Populated by JS -->
+                    <p class="placeholder-text">Henüz veri girişi yapılmadı.</p>
+                </div>
+            </div>
+
+            <!-- Chart Section -->
+            <div class="chart-container glass-panel">
+                <div class="chart-header">
+                    <h3>İlerleme</h3>
+                    <select id="chartFilter" class="glass-select">
+                        <option value="weight">Ağırlık</option>
+                        <option value="fat">Yağ %</option>
+                        <option value="muscle">Kas kg</option>
+                    </select>
+                </div>
+                <div class="canvas-wrapper">
+                    <canvas id="progressChart"></canvas>
+                </div>
+            </div>
+
+            <div style="height: 80px;"></div> <!-- Spacer for bottom nav -->
+        </main>
+
+        <!-- New Entry Form (Modal/Overlay) -->
+        <div id="entryModal" class="modal">
+            <div class="modal-content glass-panel">
+                <div class="modal-header">
+                    <h2>Yeni Kayıt</h2>
+                    <button id="closeModalBtn" class="close-btn"><i data-lucide="x"></i></button>
+                </div>
+                <form id="entryForm">
+                    <div class="input-group">
+                        <label>Ağırlık (kg)</label>
+                        <input type="number" step="0.1" id="input-weight" required placeholder="0.0">
+                    </div>
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label>Yağ (%)</label>
+                            <input type="number" step="0.1" id="input-fat" placeholder="0.0">
+                        </div>
+                        <div class="input-group">
+                            <label>Kas (kg)</label>
+                            <input type="number" step="0.1" id="input-muscle" placeholder="0.0">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label>Su (%)</label>
+                            <input type="number" step="0.1" id="input-water" placeholder="0.0">
+                        </div>
+                        <div class="input-group">
+                            <label>Kemik (kg)</label>
+                            <input type="number" step="0.1" id="input-bone" placeholder="0.0">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label>Metabolizma (kcal)</label>
+                            <input type="number" id="input-bmr" placeholder="0">
+                        </div>
+                        <div class="input-group">
+                            <label>Metabolizma Yaşı</label>
+                            <input type="number" id="input-age" placeholder="0">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>İç Organ Yağlanması</label>
+                        <input type="number" step="0.5" id="input-visceral" placeholder="0">
+                    </div>
+
+                    <button type="submit" class="submit-btn">Kaydet</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="bottom-nav glass-panel">
+            <button class="nav-item active" data-target="dashboard">
+                <i data-lucide="layout-dashboard"></i>
+                <span>Özet</span>
+            </button>
+            <button class="nav-item" data-target="history">
+                <i data-lucide="history"></i>
+                <span>Geçmiş</span>
+            </button>
+            <button class="nav-item" data-target="settings">
+                <i data-lucide="settings"></i>
+                <span>Ayarlar</span>
+            </button>
+        </nav>
+
+        <!-- History View (Hidden initially) -->
+        <main id="history" class="view hidden">
+            <header class="header">
+                <h1 class="app-title">Geçmiş</h1>
+            </header>
+            <div id="historyList" class="history-list">
+                <!-- History items -->
+            </div>
+            <div style="height: 80px;"></div>
+        </main>
+
+        <!-- Settings View (Hidden initially) -->
+        <main id="settings" class="view hidden">
+            <header class="header">
+                <h1 class="app-title">Ayarlar</h1>
+            </header>
+            <div class="glass-panel" style="padding: 20px;">
+                <p>Verileri Temizle</p>
+                <button id="clearDataBtn" class="danger-btn">Tüm Verileri Sil</button>
+            </div>
+        </main>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="app.js"></script>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('SW Registered'))
+                .catch(err => console.log('SW Error', err));
+        }
+    </script>
+</body>
+
+</html>

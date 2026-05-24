@@ -3,6 +3,7 @@
 let entries = JSON.parse(localStorage.getItem('bodyMetrics_entries')) || [];
 let chartInstance = null;
 let currentChartType = 'weight';
+let editingEntryId = null;
 
 // DOM Elements
 const els = {
@@ -17,6 +18,20 @@ const els = {
     chartFilter: document.getElementById('chartFilter'),
     historyList: document.getElementById('historyList'),
     clearBtn: document.getElementById('clearDataBtn'),
+    
+    // Theme, Back and Dynamic Header
+    themeToggleBtn: document.getElementById('themeToggleBtn'),
+    backBtn: document.getElementById('backBtn'),
+    headerTitle: document.getElementById('headerTitle'),
+    
+    // Form actions inside modal
+    deleteEntryBtn: document.getElementById('deleteEntryBtn'),
+    submitEntryBtn: document.getElementById('submitEntryBtn'),
+
+    // Welcome modal
+    welcomeModal: document.getElementById('welcomeModal'),
+    welcomeStartBtn: document.getElementById('welcomeStartBtn'),
+    welcomeDismissCheckbox: document.getElementById('welcomeDismissCheckbox'),
 
     // Display slots
     dispWeight: document.getElementById('disp-weight'),
@@ -48,8 +63,69 @@ const formatShortDate = (dateStr) => {
     return new Date(dateStr).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
 }
 
+// Theme Logic
+function initTheme() {
+    const savedTheme = localStorage.getItem('bodyMetrics_theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+    setTheme(theme);
+}
+
+function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('bodyMetrics_theme', theme);
+    
+    // Update theme toggle icon
+    if (theme === 'dark') {
+        els.themeToggleBtn.innerHTML = '<i data-lucide="sun"></i>';
+    } else {
+        els.themeToggleBtn.innerHTML = '<i data-lucide="moon"></i>';
+    }
+    if (window.lucide) lucide.createIcons();
+
+    // Update chart if it exists
+    if (chartInstance) {
+        const colors = getThemeColors();
+        chartInstance.options.scales.x.ticks.color = colors.text;
+        chartInstance.options.scales.y.grid.color = colors.grid;
+        chartInstance.options.scales.y.ticks.color = colors.text;
+        chartInstance.update();
+    }
+}
+
+// Header Navigation logic
+function updateHeader(targetId) {
+    if (targetId === 'dashboard') {
+        els.headerTitle.textContent = 'BodyMetrics';
+        els.date.classList.remove('hidden');
+        els.addBtn.classList.remove('hidden');
+        els.backBtn.classList.add('hidden');
+    } else if (targetId === 'history') {
+        els.headerTitle.textContent = 'Geçmiş';
+        els.date.classList.add('hidden');
+        els.addBtn.classList.add('hidden');
+        els.backBtn.classList.remove('hidden');
+    } else if (targetId === 'settings') {
+        els.headerTitle.textContent = 'Ayarlar';
+        els.date.classList.add('hidden');
+        els.addBtn.classList.add('hidden');
+        els.backBtn.classList.remove('hidden');
+    }
+}
+
+// Welcome Popup check
+function checkWelcome() {
+    const dismissed = localStorage.getItem('bodyMetrics_welcomeDismissed');
+    if (!dismissed) {
+        els.welcomeModal.classList.add('open');
+    }
+}
+
 // Init
 function init() {
+    initTheme();
+    checkWelcome();
+
     els.date.textContent = formatDate(new Date());
     renderDashboard();
     renderHistory();
@@ -62,6 +138,26 @@ function init() {
     els.chartFilter.addEventListener('change', (e) => {
         currentChartType = e.target.value;
         updateChart();
+    });
+
+    els.themeToggleBtn.addEventListener('click', () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        setTheme(newTheme);
+    });
+
+    els.backBtn.addEventListener('click', () => {
+        const dashboardNavItem = Array.from(els.navItems).find(n => n.dataset.target === 'dashboard');
+        if (dashboardNavItem) dashboardNavItem.click();
+    });
+
+    els.deleteEntryBtn.addEventListener('click', handleDeleteEntry);
+
+    els.welcomeStartBtn.addEventListener('click', () => {
+        if (els.welcomeDismissCheckbox.checked) {
+            localStorage.setItem('bodyMetrics_welcomeDismissed', 'true');
+        }
+        els.welcomeModal.classList.remove('open');
     });
 
     // Navigation
@@ -87,6 +183,7 @@ function init() {
                 else v.classList.add('hidden');
             });
             document.getElementById(targetId).classList.add('active');
+            updateHeader(targetId);
         });
     });
 
@@ -100,34 +197,86 @@ function init() {
 }
 
 // Logic
-function openModal() {
+// Logic
+function openModal(entryId = null) {
+    editingEntryId = entryId;
+    const modalTitle = els.modal.querySelector('.modal-header h2');
+    
+    if (editingEntryId !== null) {
+        modalTitle.textContent = 'Kaydı Düzenle';
+        els.submitEntryBtn.textContent = 'Güncelle';
+        els.deleteEntryBtn.classList.remove('hidden');
+        
+        const entry = entries.find(e => e.id === editingEntryId);
+        if (entry) {
+            document.getElementById('input-weight').value = entry.weight;
+            document.getElementById('input-fat').value = entry.fat || '';
+            document.getElementById('input-muscle').value = entry.muscle || '';
+            document.getElementById('input-water').value = entry.water || '';
+            document.getElementById('input-bone').value = entry.bone || '';
+            document.getElementById('input-bmr').value = entry.bmr || '';
+            document.getElementById('input-age').value = entry.metAge || '';
+            document.getElementById('input-visceral').value = entry.visceral || '';
+        }
+    } else {
+        modalTitle.textContent = 'Yeni Kayıt';
+        els.submitEntryBtn.textContent = 'Kaydet';
+        els.deleteEntryBtn.classList.add('hidden');
+        els.form.reset();
+    }
+    
     els.modal.classList.add('open');
-    // Pre-fill date? standard is today.
 }
 
 function closeModal() {
     els.modal.classList.remove('open');
     els.form.reset();
+    editingEntryId = null;
 }
 
 function handleFormSubmit(e) {
     e.preventDefault();
 
-    const formData = {
-        id: Date.now(),
-        date: new Date().toISOString(),
-        weight: parseFloat(document.getElementById('input-weight').value) || 0,
-        fat: parseFloat(document.getElementById('input-fat').value) || 0,
-        muscle: parseFloat(document.getElementById('input-muscle').value) || 0,
-        water: parseFloat(document.getElementById('input-water').value) || 0,
-        bone: parseFloat(document.getElementById('input-bone').value) || 0,
-        bmr: parseFloat(document.getElementById('input-bmr').value) || 0,
-        metAge: parseFloat(document.getElementById('input-age').value) || 0,
-        visceral: parseFloat(document.getElementById('input-visceral').value) || 0
-    };
+    const weightVal = parseFloat(document.getElementById('input-weight').value) || 0;
+    const fatVal = parseFloat(document.getElementById('input-fat').value) || 0;
+    const muscleVal = parseFloat(document.getElementById('input-muscle').value) || 0;
+    const waterVal = parseFloat(document.getElementById('input-water').value) || 0;
+    const boneVal = parseFloat(document.getElementById('input-bone').value) || 0;
+    const bmrVal = parseFloat(document.getElementById('input-bmr').value) || 0;
+    const metAgeVal = parseFloat(document.getElementById('input-age').value) || 0;
+    const visceralVal = parseFloat(document.getElementById('input-visceral').value) || 0;
 
-    entries.push(formData);
-    // Sort by date just in case
+    if (editingEntryId !== null) {
+        const entryIndex = entries.findIndex(e => e.id === editingEntryId);
+        if (entryIndex !== -1) {
+            entries[entryIndex] = {
+                ...entries[entryIndex],
+                weight: weightVal,
+                fat: fatVal,
+                muscle: muscleVal,
+                water: waterVal,
+                bone: boneVal,
+                bmr: bmrVal,
+                metAge: metAgeVal,
+                visceral: visceralVal
+            };
+        }
+    } else {
+        const formData = {
+            id: Date.now(),
+            date: new Date().toISOString(),
+            weight: weightVal,
+            fat: fatVal,
+            muscle: muscleVal,
+            water: waterVal,
+            bone: boneVal,
+            bmr: bmrVal,
+            metAge: metAgeVal,
+            visceral: visceralVal
+        };
+        entries.push(formData);
+    }
+
     entries.sort((a, b) => new Date(a.date) - new Date(b.date));
 
     saveData();
@@ -137,17 +286,45 @@ function handleFormSubmit(e) {
     closeModal();
 }
 
+function handleDeleteEntry() {
+    if (editingEntryId === null) return;
+    if (confirm('Bu kaydı silmek istediğinize emin misiniz?')) {
+        entries = entries.filter(e => e.id !== editingEntryId);
+        saveData();
+        renderDashboard();
+        renderHistory();
+        updateChart();
+        closeModal();
+    }
+}
+
 function saveData() {
     localStorage.setItem('bodyMetrics_entries', JSON.stringify(entries));
 }
 
 function renderDashboard() {
-    if (entries.length === 0) return;
+    if (entries.length === 0) {
+        const slots = [
+            [els.dispWeight, els.diffWeight],
+            [els.dispFat, els.diffFat],
+            [els.dispMuscle, els.diffMuscle],
+            [els.dispWater, els.diffWater],
+            [els.dispBone, els.diffBone],
+            [els.dispBmr, els.diffBmr],
+            [els.dispAge, els.diffAge],
+            [els.dispVisceral, els.diffVisceral]
+        ];
+        slots.forEach(([val, diff]) => {
+            val.textContent = '--';
+            diff.textContent = '-';
+            diff.className = 'change neutral';
+        });
+        return;
+    }
 
     const latest = entries[entries.length - 1];
     const prev = entries.length > 1 ? entries[entries.length - 2] : null;
 
-    // Helper to set text and diff
     const setMetric = (elVal, elDiff, val, prevVal, unit) => {
         elVal.textContent = val;
 
@@ -162,15 +339,15 @@ function renderDashboard() {
             else if (unit === 'kg' && elVal === els.dispMuscle) {
                 elDiff.classList.add(isPos ? 'negative' : 'positive'); // Good (Green) if Gain
             } else if (unit === 'kg' && elVal === els.dispBone) {
-                elDiff.classList.add(isPos ? 'negative' : 'positive'); // Good (Green) if Gain (assuming bone mass gain is generally good/neutral)
+                elDiff.classList.add(isPos ? 'negative' : 'positive');
             } else if (unit === 'kcal') {
-                elDiff.classList.add(isPos ? 'negative' : 'negative'); // Just keep green, high BMR usually good
+                elDiff.classList.add(isPos ? 'negative' : 'negative');
             } else {
-                // Weight/Fat/Age/Visceral: Gain(Add) -> Red(.positive). Loss(Sub) -> Green(.negative)
                 elDiff.className = `change ${isPos ? 'positive' : 'negative'}`;
             }
         } else {
             elDiff.textContent = '-';
+            elDiff.className = 'change neutral';
         }
     };
 
@@ -181,16 +358,26 @@ function renderDashboard() {
 
     setMetric(els.dispBone, els.diffBone, latest.bone, prev?.bone, 'kg');
     setMetric(els.dispBmr, els.diffBmr, latest.bmr, prev?.bmr, 'kcal');
-    setMetric(els.dispAge, els.diffAge, latest.metAge, prev?.metAge, 'yıl'); // 'metAge' matches data key
+    setMetric(els.dispAge, els.diffAge, latest.metAge, prev?.metAge, 'yıl');
     setMetric(els.dispVisceral, els.diffVisceral, latest.visceral, prev?.visceral, '');
 
-    // Extra details list (Now empty or can remove)
     els.latestDetails.innerHTML = '';
 }
 
 function renderHistory() {
     els.historyList.innerHTML = '';
-    // Reverse copy to show newest first
+    
+    if (entries.length === 0) {
+        const p = document.createElement('p');
+        p.className = 'placeholder-text';
+        p.style.textAlign = 'center';
+        p.style.padding = '40px 20px';
+        p.style.color = 'var(--text-muted)';
+        p.textContent = 'Henüz veri girişi yapılmadı.';
+        els.historyList.appendChild(p);
+        return;
+    }
+
     [...entries].reverse().forEach(entry => {
         const div = document.createElement('div');
         div.className = 'history-item';
@@ -199,17 +386,19 @@ function renderHistory() {
                 <div class="h-date">${formatDate(entry.date)}</div>
                 <div class="h-stats">${entry.weight}kg | ${entry.fat}% Yağ</div>
             </div>
-            <div style="text-align:right">
+            <div style="text-align:right; display:flex; align-items:center; gap: 12px;">
                 <div class="h-date" style="color:var(--primary)">${entry.bmr} kcal</div>
+                <i data-lucide="chevron-right" style="width: 18px; height: 18px; color: var(--text-muted);"></i>
             </div>
         `;
+        div.addEventListener('click', () => openModal(entry.id));
         els.historyList.appendChild(div);
     });
+    if (window.lucide) lucide.createIcons();
 }
 
-// Chart
 const getThemeColors = () => {
-    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     return {
         grid: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
         text: isDark ? '#94a3b8' : '#64748b'
@@ -263,13 +452,17 @@ function initChart() {
         }
     });
 
-    // Listen for theme changes to update chart
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-        const newColors = getThemeColors();
-        chartInstance.options.scales.x.ticks.color = newColors.text;
-        chartInstance.options.scales.y.grid.color = newColors.grid;
-        chartInstance.options.scales.y.ticks.color = newColors.text;
-        chartInstance.update();
+    // Listen for system theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        if (!localStorage.getItem('bodyMetrics_theme')) {
+            setTheme(e.matches ? 'dark' : 'light');
+        } else {
+            const newColors = getThemeColors();
+            chartInstance.options.scales.x.ticks.color = newColors.text;
+            chartInstance.options.scales.y.grid.color = newColors.grid;
+            chartInstance.options.scales.y.ticks.color = newColors.text;
+            chartInstance.update();
+        }
     });
 
     updateChart();

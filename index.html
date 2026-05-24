@@ -31,13 +31,23 @@
         <!-- Header -->
         <header class="header">
             <div class="header-content">
-                <div>
-                    <h1 class="app-title">BodyMetrics</h1>
-                    <p class="date-display" id="currentDate">Today</p>
+                <div class="header-left">
+                    <button id="backBtn" class="back-btn hidden" aria-label="Geri">
+                        <i data-lucide="chevron-left"></i>
+                    </button>
+                    <div>
+                        <h1 class="app-title" id="headerTitle">BodyMetrics</h1>
+                        <p class="date-display" id="currentDate">Bugün</p>
+                    </div>
                 </div>
-                <button id="addEntryBtn" class="icon-btn" aria-label="Add Entry">
-                    <i data-lucide="plus"></i>
-                </button>
+                <div class="header-actions">
+                    <button id="themeToggleBtn" class="theme-toggle-btn" aria-label="Temayı Değiştir">
+                        <i data-lucide="moon"></i>
+                    </button>
+                    <button id="addEntryBtn" class="icon-btn" aria-label="Yeni Kayıt Ekle">
+                        <i data-lucide="plus"></i>
+                    </button>
+                </div>
             </div>
         </header>
 
@@ -218,7 +228,10 @@
                         <input type="number" step="0.5" id="input-visceral" placeholder="0">
                     </div>
 
-                    <button type="submit" class="submit-btn">Kaydet</button>
+                    <div class="form-actions">
+                        <button type="button" id="deleteEntryBtn" class="danger-btn hidden">Sil</button>
+                        <button type="submit" id="submitEntryBtn" class="submit-btn" style="margin-top: 0;">Kaydet</button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -227,7 +240,7 @@
         <nav class="bottom-nav glass-panel">
             <button class="nav-item active" data-target="dashboard">
                 <i data-lucide="layout-dashboard"></i>
-                <span>Özet</span>
+                <span>Takip</span>
             </button>
             <button class="nav-item" data-target="history">
                 <i data-lucide="history"></i>
@@ -241,9 +254,6 @@
 
         <!-- History View (Hidden initially) -->
         <main id="history" class="view hidden">
-            <header class="header">
-                <h1 class="app-title">Geçmiş</h1>
-            </header>
             <div id="historyList" class="history-list">
                 <!-- History items -->
             </div>
@@ -252,14 +262,31 @@
 
         <!-- Settings View (Hidden initially) -->
         <main id="settings" class="view hidden">
-            <header class="header">
-                <h1 class="app-title">Ayarlar</h1>
-            </header>
             <div class="glass-panel" style="padding: 20px;">
-                <p>Verileri Temizle</p>
+                <p style="margin-bottom: 12px; color: var(--text-main);">Verileri Temizle</p>
                 <button id="clearDataBtn" class="danger-btn">Tüm Verileri Sil</button>
             </div>
         </main>
+
+        <!-- Welcome Modal -->
+        <div id="welcomeModal" class="modal">
+            <div class="modal-content glass-panel" style="border-radius: 24px; padding: 30px; margin: auto 20px; max-width: 480px; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s; border-bottom: 1px solid var(--glass-border);">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div style="width: 60px; height: 60px; border-radius: 30px; background: var(--primary-glow); display: inline-flex; align-items: center; justify-content: center; color: var(--primary); margin-bottom: 16px;">
+                        <i data-lucide="sparkles" style="width: 32px; height: 32px;"></i>
+                    </div>
+                    <h2 style="font-size: 24px; font-weight: 700; color: var(--text-main); margin-bottom: 12px;">BodyMetrics'e Hoş Geldiniz!</h2>
+                    <p style="font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 24px;">
+                        Vücut bileşimi değerlerinizi (ağırlık, yağ, kas, su vb.) takip ederek sağlık hedeflerinize ulaşmanızı kolaylaştıran kişisel takip asistanınız.
+                    </p>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 24px; font-size: 14px; color: var(--text-muted); cursor: pointer; user-select: none;">
+                    <input type="checkbox" id="welcomeDismissCheckbox" style="cursor: pointer; width: 18px; height: 18px; border-radius: 4px; accent-color: var(--primary);">
+                    <label for="welcomeDismissCheckbox" style="cursor: pointer;">Bir daha gösterme</label>
+                </div>
+                <button id="welcomeStartBtn" class="submit-btn" style="margin-top: 0;">Başlayalım</button>
+            </div>
+        </div>
 
     </div>
 

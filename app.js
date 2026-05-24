@@ -179,10 +179,14 @@ function init() {
 
             // View Switch
             els.views.forEach(v => {
-                if (v.id === targetId) v.classList.remove('hidden', 'active');
-                else v.classList.add('hidden');
+                if (v.id === targetId) {
+                    v.classList.remove('hidden');
+                    v.classList.add('active');
+                } else {
+                    v.classList.add('hidden');
+                    v.classList.remove('active');
+                }
             });
-            document.getElementById(targetId).classList.add('active');
             updateHeader(targetId);
         });
     });
